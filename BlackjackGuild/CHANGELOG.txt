@@ -1,0 +1,345 @@
+3.0.11
+- Attivita: ID legati al personaggio e contatore persistente; un annuncio ricevuto non puo cambiare il proprietario di un evento esistente.
+- Rete: verifica autore per ACTDEL/COUNT, revisioni del conteggio, memoria e reinvio delle cancellazioni, recupero JOIN/LEAVE persi.
+- Cache: conserva attivita proprie, ordini crafting locali, storico di completamento e protezioni contro la riapertura; iscrizioni separate per personaggio.
+- Rete: coda limitata e deduplicata, richieste ripetute limitate, scadenza dei testi in attesa e delle cache remote obsolete, protezione dei Passport disattivati dai pacchetti in ritardo.
+- Permessi: GM e vice GM (gradi 0 e 1) usano lo stesso controllo locale/remoto; Cassa, laboratorio TEST e panoramica Raider nascosti agli altri gradi. La vista Raider personale resta disponibile ai Raider abilitati.
+- Test: suite Lua di regressione e procedura di verifica in Tests/README.md.
+
+3.0.10
+- Raider/Panoramica: il dettaglio amministratore e ora scrollabile, quindi i mesi non finiscono piu fuori dal bordo inferiore della UI.
+- Raider: le due colonne mensili calcolano la propria larghezza dallo spazio disponibile invece di usare coordinate fisse.
+- Raider: aumentato lo spazio delle etichette dei mesi lunghi (es. SETTEMBRE/NOVEMBRE/DICEMBRE) e impedito il wrapping dentro le card.
+
+3.0.9
+- Raider: fix principale apertura Guild Bank su Retail moderno: usa PLAYER_INTERACTION_MANAGER_FRAME_SHOW/HIDE con Enum.PlayerInteractionType.GuildBanker; i vecchi GUILDBANKFRAME_OPENED/CLOSED restano solo come fallback.
+- Raider: il polling del money log e le baseline partono ora realmente quando si interagisce con il Guild Banker; diagnostica estesa con sorgente/timestamp dell'apertura.
+- Raider: hook DepositGuildBankMoney ritentato anche nei frame immediatamente successivi all'apertura per la UI Blizzard caricata on-demand.
+- Cassa: applicato lo stesso fix Player Interaction Manager, evitando che anche la lettura del registro gold resti inattiva su Retail.
+
+3.0.8
+- Raider: il money log della Guild Bank diventa la fonte autorevole anche per l'aggiornamento live del contributo; viene interrogato ogni 5 secondi finche la banca resta aperta.
+- Raider: GUILDBANKLOG_UPDATE viene ora debounced di 0,5s prima della lettura, evitando import mancati quando Blizzard consegna risposte multiple o temporaneamente incomplete/cache.
+- Raider: dopo un deposito vengono effettuati retry del money log piu lunghi (fino a 8,5s), mantenendo il rilevamento immediato via PLAYER_MONEY come fast-path ma senza dipendere da esso.
+- Raider: se il roster gilda arriva dopo l'apertura della banca, la scansione si aggancia automaticamente appena rank/accesso diventano disponibili.
+- Raider: le righe money-log temporaneamente incomplete (nome giocatore nil) vengono diagnosticate e lasciate ai retry successivi invece di sembrare una verifica conclusa.
+- Raider: diagnostica /bj raiderdiag estesa con ultimo evento log e ultimo polling banca.
+
+3.0.7
+- Raider: rilevamento deposito personale reso ridondante: il delta reale di gold viene controllato su PLAYER_MONEY, GUILDBANK_UPDATE_MONEY e con polling breve dopo DepositGuildBankMoney.
+- Raider: il post-hook non e piu un punto singolo di fallimento; se un evento Blizzard arriva in ordine diverso, il deposito viene comunque riconosciuto una sola volta.
+- Raider: baseline del gold locale mantenuta coerente anche quando non c'e una diminuzione, evitando snapshot obsoleti tra depositi consecutivi.
+- Raider: confermato confronto SALDATO/IN REGOLA con >= e tolleranza legacy di 1 copper; resta attiva la migrazione schema 20 che ripara le vecchie rettifiche MANUAL negative.
+
+3.0.6
+- Raider: il deposito personale viene ora rilevato dalla variazione reale di PLAYER_MONEY mentre la Guild Bank e aperta; non dipende piu dall'hook o dal money log per aggiornare la scheda locale.
+- Raider: il hook DepositGuildBankMoney resta solo come aspettativa/diagnostica; la conferma primaria avviene sul saldo reale del personaggio.
+- Raider: corretto il rounding delle rettifiche negative (-1000g non diventa piu -1000g e 1 copper).
+- Raider: migrazione schema 20 ripara automaticamente di +1 copper le vecchie rettifiche MANUAL negative.
+- Raider: stato SALDATO/IN REGOLA centralizzato con confronto >= e tolleranza legacy di 1 copper.
+- Raider: ricevute dei depositi confermati continuano a essere diffuse in gilda per store-and-forward; il money log resta il recupero persistente lato GM/Pit Boss quando erano offline.
+
+3.0.5
+- Raider: corretto il rilevamento dei depositi personali. DepositGuildBankMoney viene osservato con un post-hook, quindi ora usiamo gli snapshot saldo precedenti invece dei valori gia aggiornati.
+- Raider: il deposito personale viene confermato immediatamente tramite delta di gold personale/banca e aggiorna subito il ledger e le barre mensili.
+- Raider: il secure hook viene ritentato all'apertura della Guild Bank per compatibilita con il caricamento on-demand della UI Blizzard.
+- Raider: nuovo store-and-forward dei depositi. Ogni client Blackjack conserva le ricevute self-report e puo inoltrarle a Casino Royale/Pit Boss quando tornano online.
+- Raider: i relay di terzi restano segnalazioni da verificare; il money log della Guild Bank li promuove a movimenti verificati quando trova la transazione reale.
+- Raider: panoramica admin mostra anche quante segnalazioni deposito sono ancora da verificare.
+- Raider: diagnostica estesa con stato hook deposito e ricevute cached/pending.
+- Schema SavedVariables 19 con depositReceipts persistenti.
+
+3.0.4
+- Raider: i depositi personali vengono rilevati direttamente dalla chiamata Blizzard DepositGuildBankMoney e confermati dagli eventi saldo/personaggio, senza dipendere solo dal money log ritardato.
+- Raider: tutti i Raider autorizzati possono interrogare il money log quando sono fisicamente alla banca; i non-admin importano soltanto le proprie righe.
+- Raider: nuovo messaggio RDEP inoltra agli admin un deposito personale osservato dal client del Raider; gli admin restano la fonte della panoramica complessiva.
+- Raider: riconciliazione tra rilevamento diretto e money log evita doppi conteggi se gli eventi arrivano in ordine diverso.
+- Raider: diagnostica estesa con depositi personali pending/rilevati/confermati.
+- Raider: migrazione schema 18 ricostruisce una volta le fingerprint bankSeen senza cancellare il ledger, per recuperare righe segnate erroneamente come gia viste dalle 3.0.0-3.
+
+3.0.3
+- Raider: import Guild Bank ridisegnato con fingerprint persistenti del money log e fallback di migrazione, evitando dedupe euristico aggressivo.
+- Raider: diagnostica money log estesa con righe, depositi, match, nuovi import e non attribuiti.
+- Raider: dettaglio amministrativo mostra gli ultimi movimenti del ledger per rendere visibile come viene calcolato il totale.
+- Raider: rettifica manuale resa esplicita con etichette IMPORTO RETTIFICA (GOLD) e NOTA (OPZIONALE), esempi +/- e controlli alt separati.
+- Raider: chiarito il pulsante Rimuovi mapping e mantenuto lo stato sintetico basato solo sul mese corrente.
+
+3.0.2
+- Raider: stato sintetico basato esclusivamente sulla mensilita corrente.
+- Raider: depositi successivi proseguono sul primo mese non saldato (es. settembre saldato -> ottobre).
+- Raider: refresh money log in sequenza dopo variazioni del saldo per gestire ritardi server.
+- Raider: dedupe dei depositi identici ridotto da 36 ore a 90 minuti e per-occorrenza durante la scansione.
+- Raider: diagnostica import banca migliorata.
+
+3.0.1
+- Raider: import banca ora si aggiorna live dopo un deposito/variazione gold tramite GUILDBANK_UPDATE_MONEY.
+- Raider: il money log viene richiesto nuovamente dopo il versamento e importato su GUILDBANKLOG_UPDATE.
+- Raider: apertura banca con doppio refresh ritardato per evitare letture prima che il money log Blizzard sia pronto.
+- Raider: debounce/throttle delle query al money log e diagnostica /bj raiderdiag estesa.
+
+3.0.0
+- Nuova scheda Raider con contributo mensile da 8.000g, attivo da settembre 2026.
+- High Roller e Buy-In sono Raider automatici; Casino Royale, Pit Boss e Jack usano una flag Raider separata.
+- Vista personale con 12 barre mensili, pagamenti parziali, anticipi, credito futuro ed esenzioni.
+- Panoramica completa riservata a Casino Royale/Pit Boss con stato di tutti i Raider.
+- Import automatico dei depositi dal money log della Guild Bank quando la banca e aperta.
+- Ledger persistente, rettifiche manuali, mapping alt -> main e depositi non attribuiti.
+- Sync personale Raider e sync amministrativa tra GM/VGM senza pubblicare il ledger nella UI degli altri membri.
+
+Blackjack Guild Companion 2.9.6
+- Rewards: equipaggiare un titolo o un badge non cambia piu la posizione delle card nel catalogo.
+- Ordinamento SMART: EQUIPAGGIATO viene ordinato nello stesso gruppo degli altri reward gia sbloccati.
+- Le card continuano ad aggiornare solo stato e bottone: Equipaggia verde / Equipaggiato grigio.
+
+2.9.5
+- Crafting POSTA riscritta come stato separato: CWORK non puo piu creare notifiche da ritirare.
+- Mail recovery limitato esclusivamente a Enum.RcoCloseReason.Fulfill (mail del committente); CrafterFulfill non viene piu interpretato come oggetto da ritirare.
+- Fix Lua GetInboxNumItems: catturati esplicitamente loaded/total, evitando tonumber(..., base) e l'errore "base out of range".
+- La rimozione della notifica avviene solo su snapshot mailbox completo e solo dopo aver visto realmente l'allegato.
+- CREADY ora include anche il GUID del committente; il destinatario viene riconosciuto per GUID con fallback sul nome.
+- CRAFT trasporta opzionalmente il GUID del proprietario per rendere il completamento robusto anche se customerName arriva in ritardo.
+- Migrazione schema 15: eliminate una volta le vecchie notifiche ambigue CWORK/MAIL_RECOVERY; le mail cliente ancora realmente da ritirare vengono riscoperte all'apertura della posta.
+- Aggiunto /bj craftdiag per diagnosticare rapidamente target del completamento e notifiche POSTA correnti.
+
+2.9.4
+- Fix notifica live Crafting: acquisizione customerName tramite CRAFTINGORDERS_UPDATE_CUSTOMER_NAME.
+- Nuovo pacchetto personale CREADY, separato dallo stato CWORK, per accendere POSTA/HUD sul solo committente.
+- Retry breve se Blizzard comunica il nome cliente dopo il FULFILL; retry di rete CREADY/CWORK senza duplicati.
+- La Crafting Station continua a popolare lo storico ma non puo generare CREADY/POSTA.
+
+2.9.3
+- Crafting: ripristinato lo storico dalla lista My Orders senza generare notifiche POSTA.
+- Crafting: CWORK include ora committente e itemID, quindi il completamento live notifica il cliente anche se l'ordine attivo e gia sparito dalla cache.
+- Crafting: retry del completamento conserva i metadati del cliente; confronto crafter piu robusto sui connected realm.
+
+2.9.2
+- Fix POSTA Crafting: aprire la Crafting Station non genera piu notifiche da vecchi ordini Fulfilled presenti in GetMyOrders.
+- Le notifiche POSTA vengono create solo da un completamento live ricevuto dal crafter o da una vera mail Crafting Order rilevata nella mailbox.
+- Migrazione automatica: eliminate le vecchie notifiche errate con source MY_ORDERS gia salvate nelle SavedVariables.
+- Schema SavedVariables aggiornato a 14.
+
+2.9.1
+- Fix anti-resurrezione Crafting: gli ordini gia chiusi/completati non vengono piu riaggiunti quando GetMyOrders restituisce una cache vecchia alla riapertura della stazione.
+- Rimossa la lettura forzata di GetMyOrders dopo 0.8s: Blackjack processa gli ordini solo dopo il callback reale di ListMyOrders, come la UI Blizzard.
+- Le richieste My Orders concorrenti ora cancellano/invalidano i callback precedenti per evitare snapshot fuori ordine.
+- Tombstone Crafting conservate per 90 giorni e preservate da Svuota cache.
+- Nuovo Reset Crafting locale in Impostazioni (SHIFT) e comando /bj craftreset: pulisce ordini/storico/notifiche e ignora gli ID legacy che WoW continua a riproporre.
+
+2.9.0
+- Notifica personale Craft completato per il committente: il riquadro CRAFT dell HUD resta evidenziato in oro finche l oggetto non viene ritirato dalla posta.
+- Contatore persistente POSTA N nell HUD per i Crafting Order completati ma non ancora raccolti.
+- Rilevamento ritiro tramite mail Crafting Order e allegati reali della mailbox; aprire la posta da solo non cancella la notifica.
+- Recovery dalla mailbox: se il committente era offline durante il completamento, il Companion riconosce il Craft completato quando apre la posta.
+- Sezione Crafting con area PRONTI NELLA POSTA e stato DA RITIRARE.
+- Click sul riquadro CRAFT dell HUD apre direttamente la scheda Craft del pannello espanso.
+
+2.8.3
+- HUD espanso allineato alla pagina Attivita: schede separate LE MIE, GILDA e CRAFT.
+- Rimossa la lista mista dall'HUD: i tavoli propri non possono piu perdersi fra quelli degli altri.
+- Riepiloghi dedicati: candidati/da invitare per i propri tavoli e adesioni per quelli della gilda.
+
+2.8.2
+- Attivita: rimossa la vista combinata. Le mie attivita e le attivita della gilda sono ora due schede reali e separate.
+- Scheda Le mie attivita con conteggio tavoli, candidati totali e giocatori ancora da invitare.
+- Scheda Attivita della gilda con conteggio tavoli degli altri e attivita a cui hai gia aderito.
+- La creazione di un nuovo tavolo porta automaticamente alla scheda Le mie attivita.
+- Stati vuoti dedicati per ciascuna scheda, cosi i propri tavoli non possono piu perdersi in una lista affollata.
+
+2.8.1
+- HUD: scrollbar del pannello Attivita/Craft ancorata interamente dentro il container nero.
+- Aggiunto fallback compatibile per individuare la scrollbar anche se il template Blizzard non espone ScrollBar come parentKey.
+
+2.8.0
+- HUD ridimensionabile in larghezza e altezza con handle dedicato; dimensioni salvate per le sessioni successive.
+- Rimosso il pulsante Addon: il logo Blackjack a sinistra apre ora direttamente il Companion.
+- Il pulsante Apri e ora immediatamente accanto a Crea attivita.
+- Layout compatto adattivo alle dimensioni dell'HUD e apertura pannello ancora calcolata rispetto allo spazio disponibile.
+
+2.7.2
+- Fix critico HUD al login: HUD:Show non accede piu a frame prima della creazione.
+- Access.lua accoda la richiesta di apertura se la verifica gilda arriva durante ADDON_LOADED.
+- HUD:Initialize consuma in sicurezza l'apertura pendente dopo CreateFrame, eliminando la race condition su login/reload/cambio personaggio.
+
+2.7.1
+- HUD visibile di default a ogni login/reload/cambio personaggio.
+- Corretto il race di autorizzazione gilda: se il roster arriva dopo il login, l'HUD viene ripristinato appena Blackjack viene verificata.
+- Il tasto X nasconde l'HUD solo per la sessione corrente; l'opzione HUD al login resta il controllo persistente.
+
+2.7.0
+- Attivita: rimosso il tooltip informativo; creatore, messaggio e stato sono ora dentro le card.
+- Attivita: filtri Tutte/Mie/Altri, badge MIA/GILDA e candidati visibili sui propri tavoli.
+- HUD: aggiunti shortcut Addon e + Att.; attivita espanse con messaggio e candidati inline.
+- HUD: apertura adattiva con fallback automatico UP/DOWN/LEFT/RIGHT in base allo spazio disponibile.
+- HUD: posizione ricondotta entro lo schermo dopo drag/login e flash uniforme sopra tutti i sotto-frame.
+
+2.6.0
+- Activity HUD ridisegnato: barra compatta con soli contatori Attivita e Craft.
+- Nuovo pannello HUD espandibile e scrollabile con iscrizione, ritiro, INV e craft interest.
+- Il pannello HUD puo aprirsi verso basso, alto, destra o sinistra dalle Impostazioni.
+- Flash HUD solo quando compare una nuova attivita o un nuovo ordine Crafting, non sui normali aggiornamenti.
+- Rimossa l'impostazione del numero di righe HUD.
+- Reward Shop compattato: saldo e Busta del Dealer condividono una barra unica e il catalogo usa quasi tutta l'altezza disponibile.
+- Card reward piu compatte per mostrare piu risultati contemporaneamente.
+
+BLACKJACK GUILD COMPANION - CHANGELOG
+
+v2.5.1
+- Fix lifecycle Crafting: il crafter applica localmente claim/release/completamento senza dipendere dal loopback dei messaggi addon.
+- Un ordine completato viene rimosso immediatamente dalla lista attiva del crafter e spostato nello storico.
+- Aggiunto tracking di CRAFTINGORDERS_CRAFT_ORDER_RESPONSE e fallback CRAFTINGORDERS_CLAIMED_ORDER_REMOVED.
+- Stati terminali Crafting vengono ritrasmessi per recovery e protetti da tombstone anti-resurrezione.
+- Cleanup difensivo rimuove ordini completati/annullati/scaduti rimasti in cache.
+- Auto-publish OFF ora ritira soltanto la copia Blackjack senza segnare falsamente l'ordine come chiuso.
+- Release/reject ripristinano localmente lo stato disponibile e puliscono il crafter assegnato.
+- Cache ordini remoti ricostruita a ogni sessione: niente ordini completati fantasma dopo reload/relog.
+- Gli ordini locali sono ora filtrati per personaggio, evitando che un alt ripubblichi o chiuda gli ordini di un altro personaggio dell'account.
+- Note, offerte, stato lavoro e chiusure ricevute fuori ordine vengono messi in pending e riconciliati quando arriva la riga CRAFT.
+- Cancel del cliente viene riconciliato con retry multipli; i risultati gia richiesti possono chiudere l'ordine anche se la finestra viene chiusa subito dopo.
+
+v2.5.0
+- Challenge ridisegnate con ricerca, filtri per categoria/stato e ordinamenti.
+- Nuova vista compatta delle challenge con riepilogo dei risultati filtrati.
+- Reward Shop ridisegnato con ricerca, filtri tipo/stato e ordinamenti.
+- Reward normali mostrati in griglia a due colonne per ridurre lo scrolling.
+- Stati Acquistabile/Sbloccato/Equipaggiato/Bloccato immediatamente leggibili.
+- Busta del Dealer resta evidenziata e separata dal catalogo reward.
+- Aggiunto widget di ricerca riutilizzabile per le pagine dell'addon.
+
+BLACKJACK GUILD COMPANION 2.4.0
+
+- Nuovo modulo Crafting di gilda con rilevamento automatico degli ordini Guild tramite Crafting Orders API.
+- Pubblicazione automatica di ordine, qualita, commissione, stato reagenti, scadenza e nota cliente.
+- Sincronizzazione CRAFT/CRAFTNOTE/CDEL/COFFER/CREQ sul network Blackjack.
+- I membri possono premere Posso craftarlo; il creatore vede quanti e quali crafter si sono proposti.
+- Ordini chiusi/scaduti conservati nello storico recente.
+- Crafting integrato nell'HUD e nella Home.
+- Nuove challenge automatiche Made in Blackjack, Artigiano del tavolo e Officina Blackjack.
+- Cassa: chiarito il pulsante banca; non tenta piu di suggerire che l'addon possa aprire la Guild Bank da remoto.
+- SavedVariables schema 8.
+
+BLACKJACK GUILD COMPANION 2.3.1
+
+- Passport: titolo e badge hanno ora un secondo canale di sincronizzazione leggibile (PROFILE STYLE), oltre a PMETA.
+- Modalita TEST: titolo e badge TEST si sincronizzano solo tra client che hanno entrambi la Modalita Test attiva; i dati reali restano separati.
+- Cassa TEST: riscattare la Busta del Dealer in TEST crea ora una richiesta simulata nella Cassa TEST, condivisa solo con altri client in TEST.
+- Cassa reale: richiesta stato GCREQ, rebroadcast del claim e matching del roster piu robusto per ridurre claim mancanti.
+- Cassa: /bj net mostra ora pending, totale gold e ultimo stato della Cassa.
+- Banca di gilda: resta disabilitata nella sandbox TEST per evitare qualsiasi operazione reale accidentale.
+
+BLACKJACK GUILD COMPANION 2.3.0
+
+- Passport V3 spostato da WHISPER a GUILD per supportare correttamente membri su realm non connessi.
+- Snapshot Passport non piu atomico/bloccante: metadata e singoli campi aggiornano la cache in modo indipendente e non cancellano i dati vecchi mentre arrivano i nuovi.
+- Richiesta Passport PREQ ora viaggia via GUILD e il proprietario risponde via GUILD.
+- Riannuncio Passport al login di un altro client Blackjack e heartbeat periodico.
+- Normalizzazione locale Nome-Realm con migrazione dei vecchi profili salvati sotto il nome corto.
+- Nuovo modulo Treasury/Cassa Blackjack per il reward settimanale da 250g.
+- Richieste, pagamenti, totale dovuto e storico officer.
+- Verifica automatica opzionale tramite guild bank money log.
+- Prelievo diretto da 250g disponibile solo se il rank del personaggio ha gia i permessi e il limite sufficiente.
+- Protocollo rete V5 / prefix BJGuildV5.
+
+BLACKJACK GUILD COMPANION 2.2.6
+
+- Passport sync riscritto con richiesta WHISPER, snapshot atomico e ACK.
+- Il salvataggio pubblica una revisione; gli altri client richiedono automaticamente il profilo aggiornato.
+- I quattro campi utente viaggiano come testo logged leggibile e separato dal protocollo.
+- Retry automatico degli snapshot Passport senza ACK.
+- Refresh immediato di Members e tooltip Attivita dopo il commit del profilo.
+- /bj net mostra stato Passport, pending e ACK in attesa.
+
+2.2.5
+- Fix: il Messaggio personalizzato del tavolo ora viene inviato come payload logged plain-text e sostituisce il testo preset sugli altri client.
+- Nuovo: pulsante INV per il proprietario del tavolo, con invito dei partecipanti che hanno premuto Ci sono.
+- Nuovo: tooltip del tavolo mostra i partecipanti aderenti al proprietario.
+- Nuovo: INV disponibile anche nell'Activity HUD.
+
+Blackjack Guild Companion 2.2.4
+- Riscritta la sincronizzazione Passport: snapshot versionati e atomici in 3 pacchetti.
+- Richiesta automatica del profilo aggiornato quando si apre il Passport di un membro.
+- Riannuncio Passport di recovery ogni 5 minuti.
+- Le modifiche rapide consecutive eliminano dalla coda le snapshot vecchie.
+- /bj net mostra profili sincronizzati e profili ancora in attesa di completamento.
+
+BLACKJACK GUILD COMPANION 2.2.3
+
+- Aggiunta Modalita Test locale e isolata dai dati reali.
+- La sandbox TEST ha saldo fiches, claim challenge, reward sbloccati, equipaggiamento e claim 250g separati.
+- I dati TEST non vengono sincronizzati alla gilda e non generano richieste gold reali.
+- Pannello LAB TEST nelle Impostazioni con: 5000 fiches, completa tutte le challenge, sblocca tutti i reward e reset sandbox.
+- Indicatore MODALITA TEST sempre visibile nell'header quando attiva.
+- Titoli e badge equipaggiati in TEST vengono mostrati localmente anche nel proprio Passport senza modificare il Passport reale.
+- Aggiunti /bj test e /bj testreset.
+- Schema SavedVariables aggiornato a v5.
+
+BLACKJACK GUILD COMPANION 2.2.2
+
+- Passport: aggiunto pulsante sempre visibile "Il mio Passport" per tornare subito al proprio profilo editabile.
+- Indicatore chiaro tra modalita modifica personale e profilo altrui in sola lettura.
+- I campi mostrano lo stato "modifiche non salvate" e il pulsante Salva si attiva solo quando serve.
+- /bj profile e /bj passport aprono direttamente il proprio Passport.
+- I tavoli mostrano ora il Passport del creatore al mouseover: frase, attivita preferite, aiuto e alt.
+- Chiarito lo scopo del Passport: profilo sociale di gilda, non sistema di ranking.
+
+BLACKJACK GUILD COMPANION 2.2.1
+
+- Fix rete tavoli: lettura corretta del risultato moderno di SendAddonMessage.
+- Protocollo V4 e nuovo prefix BJGuildV4.
+- I dati strutturali delle attivita usano messaggi addon normali; testo libero separato in ACTTXT logged.
+- Nuova richiesta AREQ per recuperare i tavoli gia aperti.
+- Re-annuncio dei tavoli posseduti ogni 90 secondi come recovery.
+- JOIN/LEAVE sono ora messaggi di protocollo normali.
+- Aggiunto /bj net per diagnostica in-game.
+
+BLACKJACK - GUILD COMPANION
+
+2.2.0
+- Rimosso completamente il progresso manuale delle challenge: niente autocertificazione, checkbox o +1/-1.
+- Tracking automatico esteso a Delve, PvP, dungeon non-M+, vecchi raid, achievement e nuove mount ottenute in gruppo.
+- 55 challenge automatiche settimanali tra Season 2, M+, raid, legacy, dungeon, PvP e community.
+- Reset challenge controllato anche mentre il personaggio resta online; le fiches restano permanenti.
+- Reward Shop: costo in fiches sempre visibile per ogni reward.
+- Pulsanti reward verdi solo quando l'azione e realmente disponibile; grigi e disabilitati con saldo insufficiente.
+- Busta del Dealer: costo visibile, pulsante verde solo con fiches sufficienti, grigio altrimenti.
+
+2.1.1
+- Compatibilita reale con il flyout addon/minimap compartment di EllesmereUI.
+- Il pulsante minimappa e ora figlio diretto di Minimap (prima era in MinimapCluster).
+- Nome stabile BlackjackGuildMinimapButton e dimensione 34x34, compatibili con lo scanner EllesmereUI.
+- Rimossa la dipendenza dalla sola registrazione TOC del compartment.
+- Registrazione nativa esplicita con AddonCompartmentFrame:RegisterAddon.
+- Supporto click sinistro e destro dal compartment, con tooltip.
+- Conservata la compatibilita con il normale minimap Blizzard.
+
+BLACKJACK GUILD COMPANION - CHANGELOG
+
+2.1.0
+-----
+- Sostituito il logo generato con il logo ufficiale Blackjack fornito dal GM.
+- Logo convertito in texture TGA 256x256 adatta all'uso in WoW.
+- Rimossi i vecchi asset mark/icon non ufficiali.
+- Eliminati dai testi UI i glifi Unicode che potevano apparire come quadratini vuoti.
+- Dropdown ora usa indicatori ASCII e popup completamente opaco.
+- HUD usa un vero dot texture invece del carattere Unicode circolare.
+- Aggiunta integrazione TOC per AddOn Compartment.
+- Corretto un bug nel modulo Minimap: il nome locale Minimap oscurava il frame globale.
+- Aggiunto controllo accesso privato Blackjack / Nemesis EU.
+- Protocollo sincronizzazione aggiornato a V3.
+- Challenge settimanali separate in modo esplicito dalla valuta persistente.
+- Le fiches non vengono piu toccate dal reset challenge.
+- Aggiunto supporto a challenge manuali con contatore +1/-1.
+- Challenge aumentate a 44.
+- Aggiunte challenge Mythic+ orientate a gruppo, varieta e chiavi medio-basse.
+- Aggiunte challenge Season 2, raid corrente, legacy e community.
+- Aggiunti preset Season 2 e vecchio contenuto.
+- Reward aumentate a 33.
+- Aggiunti badge Passport equipaggiabili.
+- Aggiunta Busta del Dealer: credito 250g, una volta per reset, costo 75 fiches.
+- Il claim gold viene registrato e sincronizzato ma richiede pagamento manuale GM/officer.
+- Home aggiornata con idee Season 2 / Venomous Abyss / Legacy.
+- Settings chiarisce SavedVariables, reset e persistenza fiches.
+
+2.0.0
+-----
+- Riscrittura modulare dell'addon.
+- Nuova UI Blackjack, Activity HUD, challenge, reward e Passport.

@@ -1,0 +1,43 @@
+## Interface: 120100
+## Title: Blackjack - Guild Companion
+## Notes: Hub sociale privato della gilda Blackjack: attivita, challenge settimanali, fiches, reward e HUD.
+## Author: Blackjack Guild
+## Version: 3.0.11
+## SavedVariables: BlackjackDB
+## IconTexture: Interface\AddOns\BlackjackGuild\Media\blackjack_logo.tga
+## Category: Guild
+## X-Website: https://www.blackjackguild.it
+## AddonCompartmentFunc: BlackjackGuild_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: BlackjackGuild_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: BlackjackGuild_OnAddonCompartmentLeave
+
+Core.lua
+Access.lua
+Storage.lua
+Theme.lua
+Data.lua
+TestMode.lua
+Guild.lua
+Comms.lua
+Activities.lua
+Progress.lua
+Rewards.lua
+Treasury.lua
+Raider.lua
+Crafting.lua
+Challenges.lua
+UI\Widgets.lua
+UI\Main.lua
+UI\Pages.lua
+UI\Pages\Home.lua
+UI\Pages\Activities.lua
+UI\Pages\Challenges.lua
+UI\Pages\Rewards.lua
+UI\Pages\Treasury.lua
+UI\Pages\Raider.lua
+UI\Pages\Crafting.lua
+UI\Pages\Members.lua
+UI\Pages\Settings.lua
+UI\HUD.lua
+Compartment.lua
+Minimap.lua
